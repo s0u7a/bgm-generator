@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作業用BGMジェネレーター</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #0a0e14;
+            --surface: rgba(22, 27, 34, .95);
+            --surface2: #1c2333;
+            --border: #2d3548;
+            --text: #f0f4fc;
+            --text2: #a0aec0;
+            --accent: #6cb4ff;
+            --accent2: #4ade80;
+            --melody: #7dd3fc;
+            --bass: #c4b5fd;
+            --drum: #fbbf24;
+            --radius: 10px;
+            --shadow: 0 4px 24px rgba(0, 0, 0, .5)
+        }
+
+        html {
+            font-size: 15px
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 12px
+        }
+
+        h1 {
+            font-size: 1.7rem;
+            text-align: center;
+            padding: 14px 0 6px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            font-weight: 800
+        }
+
+        .hero {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 12px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, rgba(108, 180, 255, .1), rgba(74, 222, 128, .1));
+            border: 1px solid var(--border);
+            border-radius: var(--radius)
+        }
+
+        .hero .rev-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 8px
+        }
+
+        .hero p {
+            font-size: .88rem;
+            color: var(--text2);
+            line-height: 1.7
+        }
+
+        .hero .cta {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-top: 12px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            letter-spacing: 2px
+        }
+
+        .loading-bar {
+            text-align: center;
+            padding: 8px;
+            font-size: .85rem;
+            color: var(--accent);
+            display: none
+        }
+
+        .loading-bar.show {
+            display: block
+        }
+
+        .loading-bar .bar-bg {
+            width: 200px;
+            height: 6px;
+            background: var(--surface2);
+            border-radius: 3px;
+            margin: 6px auto 0;
+            overflow: hidden
+        }
+
+        .loading-bar .bar-fg {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            border-radius: 3px;
+            transition: width .3s;
+            width: 0%
+        }
+
+        h3 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            color: var(--accent);
+            font-weight: 700
+        }
+
+        .app {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            flex: 1;
+            min-width: 230px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(8px)
+        }
+
+        .panel.full {
+            flex-basis: 100%
+        }
+
+        .transport {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap
+        }
+
+        #playBtn {
+            font-size: 1.15rem;
+            padding: 12px 36px;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 800;
+            transition: .2s;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #0a0e14
+        }
+
+        #playBtn:hover {
+            filter: brightness(1.15);
+            transform: scale(1.03)
+        }
+
+        #playBtn.playing {
+            background: linear-gradient(135deg, #f87171, var(--drum))
+        }
+
+        #playBtn:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none
+        }
+
+        #chordDisplay {
+            font-size: 1.35rem;
+            font-weight: 800;
+            min-width: 100px;
+            text-align: center;
+            padding: 6px 18px;
+            border-radius: var(--radius);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            letter-spacing: 1px
+        }
+
+        #beatDisplay {
+            font-size: .9rem;
+            color: var(--text2);
+            min-width: 80px;
+            text-align: center;
+            font-weight: 600
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .9rem;
+            color: var(--text);
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+            font-weight: 500
+        }
+
+        label span.lbl {
+            min-width: 100px;
+            color: var(--text)
+        }
+
+        .hint {
+            display: block;
+            font-size: .75rem;
+            color: var(--text2);
+            margin: -2px 0 6px 106px;
+            line-height: 1.4
+        }
+
+        select,
+        input[type=text] {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: .88rem
+        }
+
+        input[type=range] {
+            flex: 1;
+            accent-color: var(--accent);
+            max-width: 180px
+        }
+
+        .val {
+            min-width: 36px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            color: var(--text);
+            font-weight: 600
+        }
+
+        .toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            user-select: none
+        }
+
+        .toggle input {
+            display: none
+        }
+
+        .toggle .sw {
+            width: 38px;
+            height: 22px;
+            border-radius: 11px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            position: relative;
+            transition: .2s
+        }
+
+        .toggle .sw::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--text2);
+            transition: .2s
+        }
+
+        .toggle input:checked+.sw {
+            background: var(--accent);
+            border-color: var(--accent)
+        }
+
+        .toggle input:checked+.sw::after {
+            left: 18px;
+            background: #fff
+        }
+
+        .part-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px
+        }
+
+        .part-title {
+            font-weight: 800;
+            font-size: 1rem
+        }
+
+        .part-title.drums {
+            color: var(--drum)
+        }
+
+        .part-title.bass {
+            color: var(--bass)
+        }
+
+        .part-title.melody {
+            color: var(--melody)
+        }
+
+        button.regen {
+            padding: 5px 14px;
+            border: 1px solid var(--melody);
+            background: transparent;
+            color: var(--melody);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: .85rem;
+            font-weight: 600;
+            transition: .2s
+        }
+
+        button.regen:hover {
+            background: var(--melody);
+            color: var(--bg)
+        }
+
+        button.share-btn {
+            padding: 7px 18px;
+            border: 1px solid var(--accent2);
+            background: transparent;
+            color: var(--accent2);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: .9rem;
+            font-weight: 700;
+            transition: .2s;
+            white-space: nowrap
+        }
+
+        button.share-btn:hover {
+            background: var(--accent2);
+            color: var(--bg)
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent2);
+            color: #0a0e14;
+            padding: 12px 28px;
+            border-radius: var(--radius);
+            font-weight: 800;
+            opacity: 0;
+            transition: opacity .3s;
+            pointer-events: none;
+            z-index: 999;
+            font-size: .95rem
+        }
+
+        .toast.show {
+            opacity: 1
+        }
+
+        .piano-wrap {
+            overflow-x: auto;
+            padding: 8px 0
+        }
+
+        #pianoSvg {
+            display: block;
+            margin: 0 auto
+        }
+
+        .white-key {
+            fill: #f0f0f0;
+            stroke: #aaa;
+            stroke-width: .5;
+            transition: fill .08s
+        }
+
+        .black-key {
+            fill: #1a1a1a;
+            stroke: #000;
+            stroke-width: .5;
+            transition: fill .08s
+        }
+
+        .white-key.melody-on {
+            fill: var(--melody)
+        }
+
+        .black-key.melody-on {
+            fill: var(--melody)
+        }
+
+        .white-key.bass-on {
+            fill: var(--bass)
+        }
+
+        .black-key.bass-on {
+            fill: var(--bass)
+        }
+
+        @media(max-width:600px) {
+            body {
+                padding: 6px;
+                padding-bottom: env(safe-area-inset-bottom, 12px)
+            }
+
+            .row {
+                flex-direction: column;
+                gap: 8px
+            }
+
+            .panel {
+                min-width: auto;
+                padding: 12px
+            }
+
+            h1 {
+                font-size: 1.2rem;
+                padding: 10px 0 4px
+            }
+
+            .hero {
+                padding: 12px 14px;
+                margin-bottom: 8px
+            }
+
+            .hero .rev-title {
+                font-size: 1rem
+            }
+
+            .hero p {
+                font-size: .82rem
+            }
+
+            .hero .cta {
+                font-size: 1.05rem
+            }
+
+            .transport {
+                gap: 8px
+            }
+
+            #playBtn {
+                font-size: 1rem;
+                padding: 10px 24px
+            }
+
+            #chordDisplay {
+                font-size: 1.1rem;
+                padding: 4px 12px;
+                min-width: 70px
+            }
+
+            label {
+                font-size: .85rem;
+                gap: 6px
+            }
+
+            label span.lbl {
+                min-width: 80px;
+                font-size: .82rem
+            }
+
+            input[type=range] {
+                max-width: none;
+                flex: 1;
+                min-height: 28px
+            }
+
+            select {
+                font-size: .85rem;
+                padding: 6px 8px;
+                max-width: 180px
+            }
+
+            .hint {
+                margin-left: 0;
+                font-size: .72rem
+            }
+
+            h3 {
+                font-size: .92rem
+            }
+
+            .piano-wrap {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch
+            }
+
+            button.share-btn {
+                font-size: .8rem;
+                padding: 6px 12px
+            }
+
+            button.regen {
+                font-size: .8rem;
+                padding: 4px 10px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <h1>&#127925; 作業用BGMジェネレーター</h1>
+        <div class="hero">
+            <div class="rev-title">&#127775; 音楽生成AIを超えるBGMエンジン</div>
+            <p>AIが数十秒かけて生成する曲を、<strong>一瞬で再生</strong>。<br>同じシードは何度でも同じ曲 &mdash;
+                再現性100%。<br>楽器不要、知識不要、ブラウザだけでOK。<br>共有リンクで誰でも同じ曲を聴けます。
+            </p>
+            <div class="cta">あなたの「神曲」を発掘してください。</div>
+        </div>
+        <div class="loading-bar" id="loadingBar">
+            &#127929; ピアノ＆ドラム音源を読み込み中...
+            <div class="bar-bg">
+                <div class="bar-fg" id="loadingFg"></div>
+            </div>
+        </div>
+
+        <div class="panel full">
+            <div class="transport">
+                <button id="playBtn" onclick="togglePlay()">&#9654; 再生</button>
+                <div id="chordDisplay">&#8212;</div>
+                <div id="beatDisplay">&#8212;</div>
+                <button class="share-btn" onclick="copyShareLink()">&#128279; 共有リンク</button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="panel">
+                <h3>&#9881; 基本設定</h3>
+                <label><span class="lbl">テンポ</span><input type="range" id="bpmSlider" min="70" max="200" value="110"
+                        oninput="onUI()"><span class="val" id="bpmVal">110</span></label>
+                <span class="hint">曲の速さ。大きいほど速くなります</span>
+                <label><span class="lbl">キー（調）</span><select id="keySelect" onchange="onUI()"></select></label>
+                <span class="hint">曲の基準の音。カラオケのキー変更と同じ</span>
+                <label><span class="lbl">スケール</span><select id="scaleSelect" onchange="onUI()">
+                        <option value="Major">メジャー（明るい）</option>
+                        <option value="Natural Minor">マイナー（暗い）</option>
+                        <option value="Dorian">ドリアン（おしゃれ）</option>
+                        <option value="Mixolydian">ミクソリディアン（ブルージー）</option>
+                    </select></label>
+                <span class="hint">使う音の組み合わせ。雰囲気が変わります</span>
+                <label><span class="lbl">シード</span><input type="text" id="seedInput" value="42" style="width:80px"
+                        onchange="onUI()"></label>
+                <span class="hint">同じ数字＝同じ曲。変えると別の曲に</span>
+                <label><span class="lbl">ループ長</span><select id="loopLen" onchange="onUI()">
+                        <option value="4">4小節</option>
+                        <option value="8" selected>8小節</option>
+                        <option value="16">16小節</option>
+                    </select></label>
+                <span class="hint">繰り返す長さ</span>
+                <label><span class="lbl">コード進行</span><select id="progSelect" onchange="onUI()"></select></label>
+                <span class="hint">和音の並び順＝曲の骨格</span>
+            </div>
+            <div class="panel">
+                <div class="part-header"><span class="part-title drums">&#129345; ドラム</span><label class="toggle"><input
+                            type="checkbox" id="drumOn" checked onchange="onUI()"><span class="sw"></span></label></div>
+                <label><span class="lbl">音量</span><input type="range" id="drumVol" min="0" max="100" value="60"
+                        oninput="onUI()"><span class="val" id="drumVolVal">60</span></label>
+                <label><span class="lbl">パターン</span><select id="drumPattern" onchange="onUI()">
+                        <option value="0">4つ打ち（ダンス）</option>
+                        <option value="1" selected>2拍4拍（ポップス）</option>
+                        <option value="2">ブレイクビート</option>
+                        <option value="3">8つ打ち（疾走感）</option>
+                    </select></label>
+                <span class="hint">ドラムのリズムパターン</span>
+                <label><span class="lbl">ハイハット</span><select id="hhDensity" onchange="onUI()">
+                        <option value="8">8分（ゆったり）</option>
+                        <option value="16" selected>16分（細かい）</option>
+                    </select></label>
+                <span class="hint">チッチッと鳴る金属音の間隔</span>
+                <label><span class="lbl">スウィング</span><input type="range" id="swingAmt" min="0" max="60" value="10"
+                        oninput="onUI()"><span class="val" id="swingVal">10</span>%</label>
+                <span class="hint">リズムを跳ねさせます</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="panel">
+                <div class="part-header"><span class="part-title bass">&#127929; ベース（ピアノ）</span><label
+                        class="toggle"><input type="checkbox" id="bassOn" checked onchange="onUI()"><span
+                            class="sw"></span></label></div>
+                <label><span class="lbl">音量</span><input type="range" id="bassVol" min="0" max="100" value="65"
+                        oninput="onUI()"><span class="val" id="bassVolVal">65</span></label>
+                <label><span class="lbl">リズム</span><select id="bassRhythm" onchange="onUI()">
+                        <option value="0">キック追従</option>
+                        <option value="1">4つ打ち</option>
+                        <option value="2">裏打ち</option>
+                        <option value="3">アルペジオ</option>
+                    </select></label>
+                <span class="hint">ドラムに合わせるか独自リズムか</span>
+                <label><span class="lbl">オクターブ</span><select id="bassOct" onchange="onUI()">
+                        <option value="-2">低い</option>
+                        <option value="-1" selected>普通</option>
+                    </select></label>
+            </div>
+            <div class="panel">
+                <div class="part-header"><span class="part-title melody">&#127929; メロディ（ピアノ）</span><label
+                        class="toggle"><input type="checkbox" id="melodyOn" checked onchange="onUI()"><span
+                            class="sw"></span></label></div>
+                <label><span class="lbl">音量</span><input type="range" id="melodyVol" min="0" max="100" value="55"
+                        oninput="onUI()"><span class="val" id="melodyVolVal">55</span></label>
+                <label><span class="lbl">密度</span><select id="melodyDensity" onchange="onUI()">
+                        <option value="0">少なめ（静か）</option>
+                        <option value="1" selected>普通</option>
+                        <option value="2">多め（にぎやか）</option>
+                    </select></label>
+                <span class="hint">音の数。少なめ＝落ち着いた雰囲気</span>
+                <button class="regen" onclick="regenMelody()">&#128260; 新しいメロディ</button>
+            </div>
+        </div>
+        <div class="panel full">
+            <h3>&#127929; ピアノ鍵盤（演奏中の音をリアルタイム表示）</h3>
+            <div class="piano-wrap" id="pianoWrap"></div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+    <script>
+        /* ================================================================
+           作業用BGMジェネレーター V5
+           Salamander Grand Pianoサンプル + ドラムサンプル使用
+           ================================================================ */
+
+        /* ---------- 1. シード乱数 ---------- */
+        function hashSeed(s) { var h = 0; for (var i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h |= 0; } return h >>> 0; }
+        function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t ^= t + Math.imul(t ^ t >>> 7, 61 | t); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+        var rng = mulberry32(42);
+
+        /* ---------- 2. 音楽理論 ---------- */
+        var NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        var KEY_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+        var KEY_LABELS = ['\u30CF(C)', '\u266F\u30CF(C#)', '\u30CB(D)', '\u266D\u30DB(Eb)', '\u30DB(E)', '\u30D8(F)', '\u266F\u30D8(F#)', '\u30C8(G)', '\u266D\u30A4(Ab)', '\u30A4(A)', '\u266D\u30ED(Bb)', '\u30ED(B)'];
+        var SCALES = { 'Major': [0, 2, 4, 5, 7, 9, 11], 'Natural Minor': [0, 2, 3, 5, 7, 8, 10], 'Dorian': [0, 2, 3, 5, 7, 9, 10], 'Mixolydian': [0, 2, 4, 5, 7, 9, 10] };
+        var CHORD_Q = { maj: [0, 4, 7], min: [0, 3, 7], dim: [0, 3, 6], aug: [0, 4, 8] };
+        var ROMAN_MAJ = { 'I': [0, 'maj'], 'ii': [2, 'min'], 'iii': [4, 'min'], 'IV': [5, 'maj'], 'V': [7, 'maj'], 'vi': [9, 'min'], 'vii': [11, 'dim'], 'III': [4, 'maj'], 'VII': [10, 'maj'], 'VI': [8, 'maj'] };
+        var ROMAN_MIN = { 'i': [0, 'min'], 'ii': [2, 'dim'], 'III': [3, 'maj'], 'iv': [5, 'min'], 'v': [7, 'min'], 'VI': [8, 'maj'], 'VII': [10, 'maj'], 'V': [7, 'maj'], 'IV': [5, 'maj'] };
+        var PROGRESSIONS = [
+            { name: 'I-V-vi-IV \u738B\u9053\u30DD\u30C3\u30D7', chords: ['I', 'V', 'vi', 'IV'], minor: false },
+            { name: 'vi-IV-V-I \u5C0F\u5BA4\u9032\u884C', chords: ['vi', 'IV', 'V', 'I'], minor: false },
+            { name: 'IV-V-iii-vi \u738B\u9053\u9032\u884C', chords: ['IV', 'V', 'iii', 'vi'], minor: false },
+            { name: 'I-vi-IV-V 50s\u98A8', chords: ['I', 'vi', 'IV', 'V'], minor: false },
+            { name: 'ii-V-I-I \u30B8\u30E3\u30BA\u98A8', chords: ['ii', 'V', 'I', 'I'], minor: false },
+            { name: 'I-IV-V-IV \u30ED\u30C3\u30AF', chords: ['I', 'IV', 'V', 'IV'], minor: false },
+            { name: 'I-V-vi-iii \u30DD\u30C3\u30D7\u30D1\u30F3\u30AF\u5B9A\u756A', chords: ['I', 'V', 'vi', 'iii'], minor: false },
+            { name: 'vi-IV-I-V \u30DD\u30C3\u30D7\u30D1\u30F3\u30AF\u30A8\u30E2', chords: ['vi', 'IV', 'I', 'V'], minor: false },
+            { name: 'I-iii-IV-V \u30DD\u30C3\u30D7\u30D1\u30F3\u30AF\u660E', chords: ['I', 'iii', 'IV', 'V'], minor: false },
+            { name: 'IV-I-V-vi \u30D1\u30F3\u30AF\u30ED\u30C3\u30AF', chords: ['IV', 'I', 'V', 'vi'], minor: false },
+            { name: 'i-VII-VI-VII \u30DE\u30A4\u30CA\u30FC\u5B9A\u756A', chords: ['i', 'VII', 'VI', 'VII'], minor: true },
+            { name: 'i-iv-VII-III \u30C0\u30FC\u30AF', chords: ['i', 'iv', 'VII', 'III'], minor: true },
+            { name: 'I-III-IV-V \u660E\u308B\u3044\u5909\u5316', chords: ['I', 'III', 'IV', 'V'], minor: false }
+        ];
+        function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+        function resolveChord(roman, keyR, isMinor) {
+            var tbl = isMinor ? ROMAN_MIN : ROMAN_MAJ; var e = tbl[roman];
+            if (!e) return { root: keyR, intervals: CHORD_Q.maj, name: KEY_NAMES[keyR] };
+            var r = (keyR + e[0]) % 12; var q = CHORD_Q[e[1]] || CHORD_Q.maj;
+            var suf = e[1] === 'min' ? 'm' : e[1] === 'dim' ? 'dim' : e[1] === 'aug' ? 'aug' : '';
+            return { root: r, intervals: q, name: KEY_NAMES[r] + suf };
+        }
+        function getScaleNotes(keyR, scName) { var p = SCALES[scName] || SCALES['Major']; return p.map(function (d) { return (keyR + d) % 12; }); }
+
+        /* ---------- 3. サンプルローダー ---------- */
+        /*
+          Salamander Grand Piano: 3半音ごとにサンプル。再生時にplaybackRateで
+          最寄りのサンプルからピッチシフトする。最大1.5半音のシフトなので自然。
+          ドラム: オープンソースの808風サンプルをCDNから取得。
+        */
+        var PIANO_BASE = 'https://tonejs.github.io/audio/salamander/';
+        /* サンプルするMIDIノート (3半音間隔: C, Eb, F#, A の各オクターブ) */
+        var SAMPLE_NOTES = [
+            { midi: 21, file: 'A0' }, { midi: 24, file: 'C1' }, { midi: 27, file: 'Ds1' }, { midi: 30, file: 'Fs1' },
+            { midi: 33, file: 'A1' }, { midi: 36, file: 'C2' }, { midi: 39, file: 'Ds2' }, { midi: 42, file: 'Fs2' },
+            { midi: 45, file: 'A2' }, { midi: 48, file: 'C3' }, { midi: 51, file: 'Ds3' }, { midi: 54, file: 'Fs3' },
+            { midi: 57, file: 'A3' }, { midi: 60, file: 'C4' }, { midi: 63, file: 'Ds4' }, { midi: 66, file: 'Fs4' },
+            { midi: 69, file: 'A4' }, { midi: 72, file: 'C5' }, { midi: 75, file: 'Ds5' }, { midi: 78, file: 'Fs5' },
+            { midi: 81, file: 'A5' }, { midi: 84, file: 'C6' }, { midi: 87, file: 'Ds6' }, { midi: 90, file: 'Fs6' },
+            { midi: 93, file: 'A6' }, { midi: 96, file: 'C7' }
+        ];
+        var pianoBuffers = {};/* midi -> AudioBuffer */
+        var drumBuffers = { kick: null, snare: null, hihat: null };
+
+        var DRUM_URLS = {
+            kick: 'https://tonejs.github.io/audio/drum-machine/kick.mp3',
+            snare: 'https://tonejs.github.io/audio/drum-machine/snare.mp3',
+            hihat: 'https://tonejs.github.io/audio/drum-machine/hihat.mp3'
+        };
+
+        var samplesLoaded = false;
+        var totalToLoad = SAMPLE_NOTES.length + 3;/* piano + 3 drums */
+        var loaded = 0;
+
+        function updateLoadingBar() {
+            loaded++;
+            var pct = Math.round(loaded / totalToLoad * 100);
+            var fg = document.getElementById('loadingFg');
+            if (fg) fg.style.width = pct + '%';
+            if (loaded >= totalToLoad) {
+                samplesLoaded = true;
+                var lb = document.getElementById('loadingBar');
+                if (lb) lb.classList.remove('show');
+                var pb = document.getElementById('playBtn');
+                pb.disabled = false;
+                pb.textContent = '\u25B6 \u518D\u751F';
+                if (typeof pendingPlay !== 'undefined' && pendingPlay) { pendingPlay = false; startPlay(); }
+            }
+        }
+
+        function loadSample(url, callback) {
+            fetch(url).then(function (r) { return r.arrayBuffer(); }).then(function (ab) {
+                ctx.decodeAudioData(ab, function (buf) { callback(buf); updateLoadingBar(); }, function () { updateLoadingBar(); });
+            }).catch(function () { updateLoadingBar(); });
+        }
+
+        function loadAllSamples() {
+            document.getElementById('loadingBar').classList.add('show');
+            /* ピアノサンプル */
+            for (var i = 0; i < SAMPLE_NOTES.length; i++) {
+                (function (sn) {
+                    loadSample(PIANO_BASE + sn.file + '.mp3', function (buf) { pianoBuffers[sn.midi] = buf; });
+                })(SAMPLE_NOTES[i]);
+            }
+            /* ドラムサンプル */
+            loadSample(DRUM_URLS.kick, function (buf) { drumBuffers.kick = buf; });
+            loadSample(DRUM_URLS.snare, function (buf) { drumBuffers.snare = buf; });
+            loadSample(DRUM_URLS.hihat, function (buf) { drumBuffers.hihat = buf; });
+        }
+
+        /* ---------- 4. ドラムループ ---------- */
+        function makeDrumLoop(patIdx, fillRng) {
+            var base;
+            if (patIdx === 0) { base = { kick: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] }; }
+            else if (patIdx === 1) { base = { kick: [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0], snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] }; }
+            else if (patIdx === 2) { base = { kick: [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0], snare: [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0] }; }
+            else { base = { kick: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] }; }
+            var kick = [], snare = [];
+            for (var bar = 0; bar < 4; bar++) {
+                for (var s = 0; s < 16; s++) {
+                    if (bar < 3) { kick.push(base.kick[s]); snare.push(base.snare[s]); }
+                    else {
+                        if (s < 8) { kick.push(base.kick[s]); snare.push(base.snare[s]); }
+                        else {
+                            var r = fillRng();
+                            if (s % 2 === 0) { kick.push(r < 0.4 ? 1 : 0); snare.push(r < 0.7 ? 1 : 0); }
+                            else { kick.push(r < 0.2 ? 1 : 0); snare.push(r < 0.5 ? 1 : 0); }
+                        }
+                    }
+                }
+                if (bar === 1) { var v = fillRng(); if (v < 0.5 && kick.length >= 32) kick[bar * 16 + 10] = 1; if (v > 0.3) snare[bar * 16 + 7] = fillRng() < 0.3 ? 1 : 0; }
+            }
+            return { kick: kick, snare: snare, len: 64 };
+        }
+
+        /* ---------- 5. 状態管理 ---------- */
+        var ctx = null, isPlaying = false, schedulerTimer = null;
+        var currentStep = 0, nextStepTime = 0, loopBars = 8, bpm = 110, keyRoot = 0, scaleName = 'Major', progIndex = 0;
+        var melodyNotes = [], bassNotes = [], currentChords = [];
+        var drumLoop = null;
+        var masterGain, drumBus, bassBus, melodyBus;
+        var melodyCounter = 0;
+
+        /* ---------- 6. オーディオ初期化 ---------- */
+        function initAudio() {
+            if (ctx) return;
+            ctx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = ctx.createGain(); masterGain.gain.value = 0.7; masterGain.connect(ctx.destination);
+            drumBus = ctx.createGain(); drumBus.gain.value = 0.6; drumBus.connect(masterGain);
+            bassBus = ctx.createGain(); bassBus.gain.value = 0.65; bassBus.connect(masterGain);
+            melodyBus = ctx.createGain(); melodyBus.gain.value = 0.55; melodyBus.connect(masterGain);
+            var dly = ctx.createDelay(); dly.delayTime.value = 0.22;
+            var fb = ctx.createGain(); fb.gain.value = 0.15;
+            dly.connect(fb); fb.connect(dly); melodyBus.connect(dly); dly.connect(masterGain);
+            loadAllSamples();
+        }
+
+        /* ---------- 7. サンプル再生エンジン ---------- */
+        /* MIDIノートから最寄りのピアノサンプルを探してplaybackRateでピッチ調整 */
+        function findClosestSample(midi) {
+            var best = null, bestDist = 999;
+            for (var i = 0; i < SAMPLE_NOTES.length; i++) {
+                var d = Math.abs(SAMPLE_NOTES[i].midi - midi);
+                if (d < bestDist) { bestDist = d; best = SAMPLE_NOTES[i].midi; }
+            }
+            return best;
+        }
+
+        function playPiano(midi, time, dur, destNode, hlType) {
+            var closest = findClosestSample(midi);
+            var buf = pianoBuffers[closest];
+            if (!buf) return;/* まだ読み込まれていない */
+            var src = ctx.createBufferSource();
+            src.buffer = buf;
+            /* ピッチ調整: 半音数の差からplaybackRate計算 */
+            var semitonesDiff = midi - closest;
+            src.playbackRate.value = Math.pow(2, semitonesDiff / 12);
+            var g = ctx.createGain();
+            /* サステイン重視: durの間はしっかり鳴らし、その後ゆっくりフェード */
+            var sustainT = dur * 0.85;
+            var releaseT = Math.max(dur * 0.6, 1.5);
+            var totalT = sustainT + releaseT;
+            g.gain.setValueAtTime(0.8, time);
+            g.gain.setValueAtTime(0.75, time + sustainT);
+            g.gain.exponentialRampToValueAtTime(0.001, time + totalT);
+            src.connect(g); g.connect(destNode);
+            src.start(time);
+            src.stop(time + totalT + 0.05);
+            scheduleHL(midi, hlType, time, dur);
+        }
+
+        /* ドラムサンプル再生（サンプル無ければ合成フォールバック） */
+        function playKick(time) {
+            if (drumBuffers.kick) {
+                var src = ctx.createBufferSource(); src.buffer = drumBuffers.kick;
+                var g = ctx.createGain(); g.gain.value = 0.9;
+                src.connect(g); g.connect(drumBus); src.start(time);
+            } else {
+                var o = ctx.createOscillator(), g = ctx.createGain();
+                o.type = 'sine';
+                o.frequency.setValueAtTime(150, time);
+                o.frequency.exponentialRampToValueAtTime(30, time + 0.12);
+                g.gain.setValueAtTime(0.9, time);
+                g.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
+                o.connect(g); g.connect(drumBus); o.start(time); o.stop(time + 0.36);
+            }
+        }
+        function playSnare(time) {
+            if (drumBuffers.snare) {
+                var src = ctx.createBufferSource(); src.buffer = drumBuffers.snare;
+                var g = ctx.createGain(); g.gain.value = 0.8;
+                src.connect(g); g.connect(drumBus); src.start(time);
+            } else {
+                var bLen = 0.12;
+                var buf = ctx.createBuffer(1, ctx.sampleRate * bLen | 0, ctx.sampleRate);
+                var d = buf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+                var n = ctx.createBufferSource(); n.buffer = buf;
+                var ng = ctx.createGain(); ng.gain.setValueAtTime(0.35, time); ng.gain.exponentialRampToValueAtTime(0.001, time + bLen);
+                var bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3500; bp.Q.value = 1.5;
+                n.connect(bp); bp.connect(ng); ng.connect(drumBus); n.start(time);
+                var o = ctx.createOscillator(), g = ctx.createGain();
+                o.type = 'triangle'; o.frequency.setValueAtTime(200, time); o.frequency.exponentialRampToValueAtTime(100, time + 0.05);
+                g.gain.setValueAtTime(0.4, time); g.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+                o.connect(g); g.connect(drumBus); o.start(time); o.stop(time + 0.1);
+            }
+        }
+        function playHihat(time) {
+            if (drumBuffers.hihat) {
+                var src = ctx.createBufferSource(); src.buffer = drumBuffers.hihat;
+                var g = ctx.createGain(); g.gain.value = 0.5;
+                src.connect(g); g.connect(drumBus); src.start(time);
+            } else {
+                var len = 0.04;
+                var buf = ctx.createBuffer(1, ctx.sampleRate * len | 0, ctx.sampleRate);
+                var d = buf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+                var n = ctx.createBufferSource(); n.buffer = buf;
+                var g = ctx.createGain(); g.gain.setValueAtTime(0.18, time); g.gain.exponentialRampToValueAtTime(0.001, time + len);
+                var hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 8000;
+                n.connect(hp); hp.connect(g); g.connect(drumBus); n.start(time);
+            }
+        }
+
+        function playBassNote(midi, time, dur, chordRoot, chordIntervals) {
+            /* ベース音は低音で単音 */
+            playPiano(midi, time, dur, bassBus, 'bass');
+            if (!chordIntervals || !chordRoot) return;
+            /* 和音: コードルートから1オクターブ上で正しいボイシング */
+            for (var ci = 1; ci < chordIntervals.length; ci++) {
+                playPiano(chordRoot + 12 + chordIntervals[ci], time, dur * 0.85, bassBus, 'bass');
+            }
+        }
+        function playMelodyNote(midi, time, dur) { playPiano(midi, time, dur, melodyBus, 'melody'); }
+
+        /* ---------- 8. ピアノ鍵盤 ---------- */
+        var PNO_LO = 36, PNO_HI = 84, WW = 22, WH = 90, BW = 14, BH = 56;
+        var pianoKeys = {};
+        function buildPiano() {
+            var wrap = document.getElementById('pianoWrap');
+            var whites = [], whiteX = {}, wx = 0;
+            for (var m = PNO_LO; m <= PNO_HI; m++) { if ([1, 3, 6, 8, 10].indexOf(m % 12) < 0) whites.push(m); }
+            var svgW = whites.length * WW;
+            var sv = '<svg id="pianoSvg" width="' + svgW + '" height="' + (WH + 10) + '" viewBox="0 0 ' + svgW + ' ' + (WH + 10) + '">';
+            for (var i = 0; i < whites.length; i++) { var m = whites[i]; sv += '<rect class="white-key" data-midi="' + m + '" x="' + wx + '" y="4" width="' + (WW - 1) + '" height="' + WH + '" rx="3"/>'; whiteX[m] = wx; wx += WW; }
+            for (var m = PNO_LO; m <= PNO_HI; m++) { if ([1, 3, 6, 8, 10].indexOf(m % 12) < 0) continue; var pw = m - 1; var px = whiteX[pw]; if (px === undefined) continue; var bx = px + WW - BW / 2 - 1; sv += '<rect class="black-key" data-midi="' + m + '" x="' + bx + '" y="4" width="' + BW + '" height="' + BH + '" rx="2"/>'; }
+            sv += '</svg>'; wrap.innerHTML = sv;
+            pianoKeys = {}; wrap.querySelectorAll('[data-midi]').forEach(function (el) { pianoKeys[+el.dataset.midi] = el; });
+        }
+        function scheduleHL(midi, type, time, dur) {
+            var now = ctx.currentTime; var onD = Math.max(0, (time - now) * 1000); var offD = onD + dur * 1000;
+            setTimeout(function () { var el = pianoKeys[midi]; if (el) el.classList.add(type + '-on'); }, onD);
+            setTimeout(function () { var el = pianoKeys[midi]; if (el) el.classList.remove(type + '-on'); }, offD);
+        }
+        function clearHL() { document.querySelectorAll('.melody-on,.bass-on').forEach(function (el) { el.classList.remove('melody-on', 'bass-on'); }); }
+
+        /* ---------- 9. 生成エンジン ---------- */
+        function generateChords() {
+            var prog = PROGRESSIONS[progIndex]; var ch = [];
+            for (var b = 0; b < loopBars; b++) { ch.push(resolveChord(prog.chords[b % prog.chords.length], keyRoot, prog.minor)); }
+            return ch;
+        }
+        function generateDrumLoop() {
+            var patIdx = +document.getElementById('drumPattern').value;
+            var fillRng = mulberry32(hashSeed(document.getElementById('seedInput').value + 'drum'));
+            drumLoop = makeDrumLoop(patIdx, fillRng);
+        }
+        function generateBass(chords) {
+            var subRng = mulberry32(hashSeed(document.getElementById('seedInput').value + 'bass'));
+            var rMode = +document.getElementById('bassRhythm').value;
+            var octS = +document.getElementById('bassOct').value;
+            var bOct = 3 + octS; var notes = [], prevM = null;
+            var basePat = drumLoop ? drumLoop.kick : null;
+            for (var bar = 0; bar < chords.length; bar++) {
+                var ch = chords[bar]; var rootM = ch.root + ((bOct + 1) * 12); var fifth = rootM + 7; var third = rootM + ch.intervals[1]; var octUp = rootM + 12;
+                var hits = [];
+                if (rMode === 0 && basePat) { for (var s = 0; s < 16; s++) { var di = (bar % 4) * 16 + s; if (di < basePat.length && basePat[di]) hits.push(s); } if (hits.length === 0) hits = [0]; }
+                else if (rMode === 1) hits = [0, 4, 8, 12];
+                else if (rMode === 2) hits = [2, 6, 10, 14];
+                else hits = [0, 2, 4, 6, 8, 10, 12, 14];
+                for (var hi = 0; hi < hits.length; hi++) {
+                    var step = hits[hi]; var midi;
+                    if (step === 0) { midi = rootM; }
+                    else if (rMode === 3) { var tones = [rootM, third, fifth, octUp]; midi = tones[step % tones.length]; }
+                    else { var r = subRng(); midi = r < 0.5 ? rootM : r < 0.75 ? fifth : r < 0.9 ? third : octUp; }
+                    if (prevM !== null && Math.abs(midi - prevM) > 12) { midi = prevM < midi ? prevM + 7 : prevM - 5; }
+                    notes.push({ step: bar * 16 + step, dur: rMode === 3 ? 3 : 4, midi: midi, chordRoot: rootM, intervals: ch.intervals }); prevM = midi;
+                }
+            } return notes;
+        }
+        function generateMelody(chords) {
+            var seedStr = document.getElementById('seedInput').value + 'melody' + melodyCounter;
+            var mR = mulberry32(hashSeed(seedStr));
+            var dens = +document.getElementById('melodyDensity').value;
+            var scNotes = getScaleNotes(keyRoot, scaleName);
+            var minM = 62, maxM = 81;
+            var pool = []; for (var m = minM; m <= maxM; m++) { if (scNotes.indexOf(m % 12) >= 0) pool.push(m); }
+            if (pool.length === 0) return [];
+
+            function chordPoolNotes(ch) {
+                var ct = ch.intervals.map(function (iv) { return (ch.root + iv) % 12; });
+                var res = [];
+                for (var i = 0; i < pool.length; i++) { if (ct.indexOf(pool[i] % 12) >= 0) res.push(pool[i]); }
+                return res.length > 0 ? res : [pool[Math.floor(pool.length / 2)]];
+            }
+            function nearestInPool(target) {
+                var best = pool[0];
+                for (var i = 1; i < pool.length; i++) { if (Math.abs(pool[i] - target) < Math.abs(best - target)) best = pool[i]; }
+                return best;
+            }
+            function pIdx(midi) { var idx = pool.indexOf(midi); return idx >= 0 ? idx : Math.floor(pool.length / 2); }
+
+            /* 4小節フレーズの骨格を生成 (度数オフセット + リズム) */
+            var phraseLen = 4;
+            var phraseEvents = [];
+            var cur = 0;
+            for (var bar = 0; bar < phraseLen; bar++) {
+                var bs = bar * 16;
+                var isLast = (bar === phraseLen - 1);
+                if (dens === 0) {
+                    phraseEvents.push({ s: bs, dur: mR() < 0.6 ? 12 : 8, deg: cur });
+                    if (mR() < 0.4) { cur += mR() < 0.7 ? 1 : (mR() < 0.5 ? -1 : 2); phraseEvents.push({ s: bs + (mR() < 0.5 ? 8 : 12), dur: mR() < 0.5 ? 6 : 4, deg: cur }); }
+                } else if (dens === 1) {
+                    var d1 = mR() < 0.5 ? 8 : 6;
+                    phraseEvents.push({ s: bs, dur: d1, deg: cur });
+                    cur += mR() < 0.55 ? (mR() < 0.6 ? 1 : 2) : (mR() < 0.6 ? -1 : -2);
+                    var d2 = mR() < 0.5 ? 6 : 4;
+                    phraseEvents.push({ s: bs + d1, dur: d2, deg: cur });
+                    if (mR() < 0.35) { cur += mR() < 0.6 ? 1 : -1; phraseEvents.push({ s: bs + d1 + d2, dur: 16 - d1 - d2, deg: cur }); }
+                } else {
+                    var p2 = 0;
+                    var cnt = mR() < 0.4 ? 3 : 4;
+                    for (var ni = 0; ni < cnt; ni++) {
+                        var dd = ni === 0 ? (mR() < 0.5 ? 6 : 4) : (mR() < 0.4 ? 4 : (mR() < 0.7 ? 3 : 2));
+                        if (p2 + dd > 16) dd = 16 - p2;
+                        if (dd <= 0) break;
+                        phraseEvents.push({ s: bs + p2, dur: dd, deg: cur });
+                        p2 += dd;
+                        cur += mR() < 0.65 ? 1 : -1;
+                    }
+                }
+                if (isLast) cur = mR() < 0.7 ? 0 : 2;
+            }
+
+            var notes = [];
+            var totalBars = chords.length;
+            var prevMidi = null;
+
+            for (var lb = 0; lb < totalBars; lb++) {
+                var ch = chords[lb];
+                var ct = chordPoolNotes(ch);
+                var rootT = ch.root + 72 - (ch.root > 6 ? 12 : 0);
+                var base = nearestInPool(rootT);
+                /* 前の音から急に飛ばないよう基準を調整 */
+                if (prevMidi !== null && Math.abs(base - prevMidi) > 5) {
+                    base = nearestInPool(prevMidi + (base > prevMidi ? 2 : -2));
+                }
+                var bIdx = pIdx(base);
+                var pBar = lb % phraseLen;
+
+                for (var pn = 0; pn < phraseEvents.length; pn++) {
+                    var ev = phraseEvents[pn];
+                    if (Math.floor(ev.s / 16) !== pBar) continue;
+                    var sib = ev.s % 16;
+
+                    var vary = 0;
+                    if (lb >= phraseLen && mR() < 0.15) { vary = mR() < 0.5 ? 1 : -1; }
+
+                    var ni2 = bIdx + ev.deg + vary;
+                    ni2 = Math.max(0, Math.min(pool.length - 1, ni2));
+                    var midi = pool[ni2];
+                    prevMidi = midi;
+
+                    notes.push({ step: lb * 16 + sib, dur: ev.dur, midi: midi });
+                }
+            }
+            return notes;
+        }
+        function regenMelody() { melodyCounter++; if (isPlaying) regenerateSequence(); }
+
+        function regenerateSequence() { var ch = generateChords(); currentChords = ch; generateDrumLoop(); bassNotes = generateBass(ch); melodyNotes = generateMelody(ch); }
+
+        /* ---------- 10. スケジューラ ---------- */
+        var LOOKAHEAD = 0.1, SCHED_INT = 25;
+        function scheduler() { while (nextStepTime < ctx.currentTime + LOOKAHEAD) { scheduleStep(currentStep, nextStepTime); advanceStep(); } }
+        function scheduleStep(step, time) {
+            var totalS = loopBars * 16; var ls = step % totalS; var bar = Math.floor(ls / 16); var bib = ls % 16;
+            var sixD = 60 / bpm / 4; var swPct = +document.getElementById('swingAmt').value / 100;
+            var t = time; if (bib % 2 === 1) t += sixD * swPct * 0.5;
+            if (bib === 0 && currentChords[bar]) {
+                var now = ctx.currentTime; var cc = currentChords[bar]; var bNum = bar + 1; var lB = loopBars;
+                setTimeout(function () { document.getElementById('chordDisplay').textContent = cc.name; document.getElementById('beatDisplay').textContent = bNum + '/' + lB + '\u5C0F\u7BC0'; }, Math.max(0, (t - now) * 1000));
+            }
+            if (document.getElementById('drumOn').checked && drumLoop) {
+                var di = (bar % 4) * 16 + bib;
+                var hhD = +document.getElementById('hhDensity').value;
+                if (di < drumLoop.kick.length && drumLoop.kick[di]) playKick(t);
+                if (di < drumLoop.snare.length && drumLoop.snare[di]) playSnare(t);
+                if (hhD === 16 || (hhD === 8 && bib % 2 === 0)) playHihat(t);
+            }
+            if (document.getElementById('bassOn').checked) { for (var i = 0; i < bassNotes.length; i++) { if (bassNotes[i].step === ls) playBassNote(bassNotes[i].midi, t, bassNotes[i].dur * sixD, bassNotes[i].chordRoot, bassNotes[i].intervals); } }
+            if (document.getElementById('melodyOn').checked) { for (var i = 0; i < melodyNotes.length; i++) { if (melodyNotes[i].step === ls) playMelodyNote(melodyNotes[i].midi, t, melodyNotes[i].dur * sixD); } }
+        }
+        function advanceStep() { nextStepTime += 60 / bpm / 4; currentStep++; if (currentStep >= loopBars * 16) currentStep = 0; }
+
+        /* ---------- 11. 再生/停止 ---------- */
+        var pendingPlay = false;
+        function togglePlay() {
+            if (!ctx) { initAudio(); pendingPlay = true; document.getElementById('playBtn').textContent = '\u25B6 \u8AAD\u307F\u8FBC\u307F\u4E2D...'; document.getElementById('playBtn').disabled = true; return; }
+            if (!samplesLoaded) { pendingPlay = true; return; }
+            if (!isPlaying) startPlay(); else stopPlay();
+        }
+        function startPlay() {
+            if (ctx.state === 'suspended') ctx.resume();
+            readUI(); regenerateSequence(); currentStep = 0; nextStepTime = ctx.currentTime + 0.05;
+            isPlaying = true; document.getElementById('playBtn').textContent = '\u25A0 \u505C\u6B62';
+            document.getElementById('playBtn').classList.add('playing');
+            schedulerTimer = setInterval(scheduler, SCHED_INT);
+        }
+        function stopPlay() {
+            isPlaying = false; if (schedulerTimer) { clearInterval(schedulerTimer); schedulerTimer = null; }
+            document.getElementById('playBtn').textContent = '\u25B6 \u518D\u751F';
+            document.getElementById('playBtn').classList.remove('playing');
+            document.getElementById('chordDisplay').textContent = '\u2014';
+            document.getElementById('beatDisplay').textContent = '\u2014'; clearHL();
+        }
+
+        /* ---------- 12. UI ---------- */
+        function readUI() {
+            bpm = +document.getElementById('bpmSlider').value;
+            keyRoot = KEY_NAMES.indexOf(document.getElementById('keySelect').value); if (keyRoot < 0) keyRoot = 0;
+            scaleName = document.getElementById('scaleSelect').value;
+            progIndex = +document.getElementById('progSelect').value;
+            loopBars = +document.getElementById('loopLen').value;
+            if (drumBus) drumBus.gain.value = +document.getElementById('drumVol').value / 100;
+            if (bassBus) bassBus.gain.value = +document.getElementById('bassVol').value / 100;
+            if (melodyBus) melodyBus.gain.value = +document.getElementById('melodyVol').value / 100;
+        }
+        function onUI() {
+            document.getElementById('bpmVal').textContent = document.getElementById('bpmSlider').value;
+            document.getElementById('drumVolVal').textContent = document.getElementById('drumVol').value;
+            document.getElementById('bassVolVal').textContent = document.getElementById('bassVol').value;
+            document.getElementById('melodyVolVal').textContent = document.getElementById('melodyVol').value;
+            document.getElementById('swingVal').textContent = document.getElementById('swingAmt').value;
+            readUI(); if (isPlaying) regenerateSequence();
+        }
+
+        /* ---------- 13. コンパクト共有リンク ---------- */
+        function pad(n, len) { var s = '' + n; while (s.length < len) s = '0' + s; return s; }
+        function hexPad(n, len) { var s = parseInt(n).toString(16); while (s.length < len) s = '0' + s; return s; }
+        function encodeSettings() {
+            var scaleIdx = ['Major', 'Natural Minor', 'Dorian', 'Mixolydian'].indexOf(document.getElementById('scaleSelect').value);
+            if (scaleIdx < 0) scaleIdx = 0;
+            var s = '';
+            s += pad(document.getElementById('bpmSlider').value, 3);
+            s += hexPad(KEY_NAMES.indexOf(document.getElementById('keySelect').value), 1);
+            s += scaleIdx;
+            s += hexPad(document.getElementById('progSelect').value, 1);
+            s += hexPad(document.getElementById('loopLen').value, 1);
+            s += (document.getElementById('drumOn').checked ? '1' : '0');
+            s += hexPad(document.getElementById('drumVol').value, 2);
+            s += document.getElementById('drumPattern').value;
+            s += (document.getElementById('hhDensity').value === '16' ? '1' : '0');
+            s += hexPad(document.getElementById('swingAmt').value, 2);
+            s += (document.getElementById('bassOn').checked ? '1' : '0');
+            s += hexPad(document.getElementById('bassVol').value, 2);
+            s += document.getElementById('bassRhythm').value;
+            s += (parseInt(document.getElementById('bassOct').value) + 2);
+            s += (document.getElementById('melodyOn').checked ? '1' : '0');
+            s += hexPad(document.getElementById('melodyVol').value, 2);
+            s += document.getElementById('melodyDensity').value;
+            s += hexPad(melodyCounter, 2);
+            s += '-' + document.getElementById('seedInput').value;
+            return s;
+        }
+        function decodeSettings(code) {
+            try {
+                var parts = code.split('-'); var c = parts[0]; var seed = parts.slice(1).join('-');
+                var i = 0;
+                function take(n) { var v = c.substring(i, i + n); i += n; return v; }
+                document.getElementById('bpmSlider').value = parseInt(take(3));
+                var ki = parseInt(take(1), 16); document.getElementById('keySelect').value = KEY_NAMES[ki] || 'C';
+                var si = parseInt(take(1)); document.getElementById('scaleSelect').value = ['Major', 'Natural Minor', 'Dorian', 'Mixolydian'][si] || 'Major';
+                document.getElementById('progSelect').value = parseInt(take(1), 16);
+                document.getElementById('loopLen').value = parseInt(take(1), 16);
+                document.getElementById('drumOn').checked = take(1) === '1';
+                document.getElementById('drumVol').value = parseInt(take(2), 16);
+                document.getElementById('drumPattern').value = parseInt(take(1));
+                document.getElementById('hhDensity').value = take(1) === '1' ? '16' : '8';
+                document.getElementById('swingAmt').value = parseInt(take(2), 16);
+                document.getElementById('bassOn').checked = take(1) === '1';
+                document.getElementById('bassVol').value = parseInt(take(2), 16);
+                document.getElementById('bassRhythm').value = parseInt(take(1));
+                document.getElementById('bassOct').value = parseInt(take(1)) - 2;
+                document.getElementById('melodyOn').checked = take(1) === '1';
+                document.getElementById('melodyVol').value = parseInt(take(2), 16);
+                document.getElementById('melodyDensity').value = parseInt(take(1));
+                melodyCounter = parseInt(take(2), 16) || 0;
+                document.getElementById('seedInput').value = seed || '42';
+                onUI();
+            } catch (e) { console.log('decode error', e); }
+        }
+        function copyShareLink() {
+            var code = encodeSettings();
+            var url = location.origin + location.pathname + '#' + code;
+            if (navigator.clipboard) { navigator.clipboard.writeText(url).then(function () { showToast('\u5171\u6709\u30EA\u30F3\u30AF\u3092\u30B3\u30D4\u30FC\uFF01'); }); }
+            else { var ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('\u5171\u6709\u30EA\u30F3\u30AF\u3092\u30B3\u30D4\u30FC\uFF01'); }
+        }
+        function showToast(msg) { var t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(function () { t.classList.remove('show'); }, 2500); }
+
+        /* ---------- 14. 初期化 ---------- */
+        (function initUI() {
+            var ks = document.getElementById('keySelect');
+            for (var i = 0; i < KEY_NAMES.length; i++) { var o = document.createElement('option'); o.value = KEY_NAMES[i]; o.textContent = KEY_LABELS[i]; ks.appendChild(o); }
+            var ps = document.getElementById('progSelect');
+            for (var i = 0; i < PROGRESSIONS.length; i++) { var o = document.createElement('option'); o.value = i; o.textContent = PROGRESSIONS[i].name; ps.appendChild(o); }
+            buildPiano();
+            if (location.hash && location.hash.length > 1) {
+                try { decodeSettings(location.hash.substring(1)); } catch (e) { }
+            }
+        })();
+    </script>
+</body>
+
+</html>

@@ -11,6 +11,7 @@ https://souta-lab.github.io/bgm-generator/
 ## Features
 
 - Procedural melody / bass / drum generation
+- Adjustable tempo, key, scale, and seed
 - Runs entirely client-side (no server required)
 - Single `index.html` — just open and play
 
